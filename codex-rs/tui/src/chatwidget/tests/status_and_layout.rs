@@ -1524,6 +1524,34 @@ async fn status_line_model_with_reasoning_plan_mode_footer_snapshot() {
 }
 
 #[tokio::test]
+async fn status_line_plan_mode_model_override_footer_snapshot() {
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
+
+    let (mut chat, _rx, _op_rx) = make_chatwidget_manual(Some("gpt-5.3-codex")).await;
+    chat.show_welcome_banner = false;
+    chat.set_feature_enabled(Feature::CollaborationModes, /*enabled*/ true);
+    chat.config.tui_status_line = Some(vec!["model-with-reasoning".to_string()]);
+    chat.config.plan_mode_model = Some("gpt-5.1-codex-mini".to_string());
+    chat.set_reasoning_effort(Some(ReasoningEffortConfig::High));
+
+    let plan_mask = collaboration_modes::plan_mask(chat.model_catalog.as_ref())
+        .expect("expected plan collaboration mode");
+    chat.set_collaboration_mask(plan_mask);
+
+    let width = 80;
+    let height = chat.desired_height(width);
+    let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("create terminal");
+    terminal
+        .draw(|f| chat.render(f.area(), f.buffer_mut()))
+        .expect("draw plan-mode footer");
+    assert_chatwidget_snapshot!(
+        "status_line_plan_mode_model_override_footer",
+        normalized_backend_snapshot(terminal.backend())
+    );
+}
+
+#[tokio::test]
 async fn renamed_thread_footer_title_snapshot() {
     use ratatui::Terminal;
     use ratatui::backend::TestBackend;

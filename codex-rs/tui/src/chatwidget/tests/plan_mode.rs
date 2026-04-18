@@ -1393,6 +1393,39 @@ async fn set_model_updates_active_collaboration_mask() {
 }
 
 #[tokio::test]
+async fn plan_mode_uses_configured_plan_mode_model() {
+    let (mut chat, _rx, _op_rx) = make_chatwidget_manual(Some("gpt-5.1")).await;
+    chat.set_feature_enabled(Feature::CollaborationModes, /*enabled*/ true);
+    chat.config.plan_mode_model = Some("gpt-5.1-codex-mini".to_string());
+    let plan_mask = collaboration_modes::mask_for_kind(chat.model_catalog.as_ref(), ModeKind::Plan)
+        .expect("expected plan collaboration mask");
+
+    chat.set_collaboration_mask(plan_mask);
+
+    assert_eq!(chat.current_model(), "gpt-5.1-codex-mini");
+    assert_eq!(chat.active_collaboration_mode_kind(), ModeKind::Plan);
+}
+
+#[tokio::test]
+async fn switching_back_to_default_restores_executor_model_after_plan_mode_model_override() {
+    let (mut chat, _rx, _op_rx) = make_chatwidget_manual(Some("gpt-5.1")).await;
+    chat.set_feature_enabled(Feature::CollaborationModes, /*enabled*/ true);
+    chat.config.plan_mode_model = Some("gpt-5.1-codex-mini".to_string());
+    let plan_mask = collaboration_modes::mask_for_kind(chat.model_catalog.as_ref(), ModeKind::Plan)
+        .expect("expected plan collaboration mask");
+    let default_mask = collaboration_modes::default_mask(chat.model_catalog.as_ref())
+        .expect("expected default collaboration mode");
+
+    chat.set_collaboration_mask(plan_mask);
+    assert_eq!(chat.current_model(), "gpt-5.1-codex-mini");
+
+    chat.set_collaboration_mask(default_mask);
+
+    assert_eq!(chat.current_model(), "gpt-5.1");
+    assert_eq!(chat.active_collaboration_mode_kind(), ModeKind::Default);
+}
+
+#[tokio::test]
 async fn set_reasoning_effort_updates_active_collaboration_mask() {
     let (mut chat, _rx, _op_rx) = make_chatwidget_manual(Some("gpt-5.2")).await;
     chat.set_feature_enabled(Feature::CollaborationModes, /*enabled*/ true);
