@@ -250,6 +250,7 @@ pub struct ConfigToml {
     pub show_raw_agent_reasoning: Option<bool>,
 
     pub model_reasoning_effort: Option<ReasoningEffort>,
+    pub plan_mode_model: Option<String>,
     pub plan_mode_reasoning_effort: Option<ReasoningEffort>,
     pub model_reasoning_summary: Option<ReasoningSummary>,
     /// Optional verbosity control for GPT-5 models (Responses API `text.verbosity`).
@@ -411,6 +412,7 @@ impl From<ConfigToml> for UserSavedConfig {
             forced_login_method: config_toml.forced_login_method,
             model: config_toml.model,
             model_reasoning_effort: config_toml.model_reasoning_effort,
+            plan_mode_model: config_toml.plan_mode_model,
             model_reasoning_summary: config_toml.model_reasoning_summary,
             model_verbosity: config_toml.model_verbosity,
             tools: config_toml.tools.map(From::from),

@@ -3238,6 +3238,88 @@ async fn set_model_updates_defaults() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[test]
+fn config_toml_deserializes_top_level_plan_mode_model() {
+    let parsed = toml::from_str::<ConfigToml>(
+        r#"
+model = "gpt-5.4"
+plan_mode_model = "gpt-5.4-mini"
+"#,
+    );
+
+    assert!(parsed.is_ok(), "expected plan_mode_model to deserialize");
+}
+
+#[test]
+fn config_toml_deserializes_profile_plan_mode_model() {
+    let parsed = toml::from_str::<ConfigToml>(
+        r#"
+[profiles.dev]
+model = "gpt-5.4"
+plan_mode_model = "gpt-5.4-mini"
+"#,
+    );
+
+    assert!(
+        parsed.is_ok(),
+        "expected profile plan_mode_model to deserialize"
+    );
+}
+
+#[tokio::test]
+async fn load_config_uses_top_level_plan_mode_model() -> std::io::Result<()> {
+    let cwd_temp_dir = TempDir::new()?;
+    std::fs::write(cwd_temp_dir.path().join(".git"), "gitdir: nowhere")?;
+    let codex_home = tempdir()?;
+    let config = Config::load_from_base_config_with_overrides(
+        ConfigToml {
+            model: Some("gpt-5.4".to_string()),
+            plan_mode_model: Some("gpt-5.4-mini".to_string()),
+            ..Default::default()
+        },
+        ConfigOverrides {
+            cwd: Some(cwd_temp_dir.path().to_path_buf()),
+            ..Default::default()
+        },
+        codex_home.abs(),
+    )
+    .await?;
+
+    assert_eq!(config.plan_mode_model.as_deref(), Some("gpt-5.4-mini"));
+    Ok(())
+}
+
+#[tokio::test]
+async fn load_config_profile_plan_mode_model_overrides_top_level() -> std::io::Result<()> {
+    let cwd_temp_dir = TempDir::new()?;
+    std::fs::write(cwd_temp_dir.path().join(".git"), "gitdir: nowhere")?;
+    let codex_home = tempdir()?;
+    let config = Config::load_from_base_config_with_overrides(
+        ConfigToml {
+            model: Some("gpt-5.4".to_string()),
+            plan_mode_model: Some("gpt-5.4-mini".to_string()),
+            profiles: HashMap::from([(
+                "dev".to_string(),
+                ConfigProfile {
+                    plan_mode_model: Some("gpt-5.3-codex".to_string()),
+                    ..Default::default()
+                },
+            )]),
+            ..Default::default()
+        },
+        ConfigOverrides {
+            config_profile: Some("dev".to_string()),
+            cwd: Some(cwd_temp_dir.path().to_path_buf()),
+            ..Default::default()
+        },
+        codex_home.abs(),
+    )
+    .await?;
+
+    assert_eq!(config.plan_mode_model.as_deref(), Some("gpt-5.3-codex"));
+    Ok(())
+}
+
 #[tokio::test]
 async fn set_model_overwrites_existing_model() -> anyhow::Result<()> {
     let codex_home = TempDir::new()?;
@@ -4869,6 +4951,7 @@ async fn test_precedence_fixture_with_o3_profile() -> std::io::Result<()> {
             hide_agent_reasoning: false,
             show_raw_agent_reasoning: false,
             model_reasoning_effort: Some(ReasoningEffort::High),
+            plan_mode_model: None,
             plan_mode_reasoning_effort: None,
             model_reasoning_summary: Some(ReasoningSummary::Detailed),
             model_supports_reasoning_summaries: None,
@@ -5019,6 +5102,7 @@ async fn test_precedence_fixture_with_gpt3_profile() -> std::io::Result<()> {
         hide_agent_reasoning: false,
         show_raw_agent_reasoning: false,
         model_reasoning_effort: None,
+        plan_mode_model: None,
         plan_mode_reasoning_effort: None,
         model_reasoning_summary: None,
         model_supports_reasoning_summaries: None,
@@ -5167,6 +5251,7 @@ async fn test_precedence_fixture_with_zdr_profile() -> std::io::Result<()> {
         hide_agent_reasoning: false,
         show_raw_agent_reasoning: false,
         model_reasoning_effort: None,
+        plan_mode_model: None,
         plan_mode_reasoning_effort: None,
         model_reasoning_summary: None,
         model_supports_reasoning_summaries: None,
@@ -5300,6 +5385,7 @@ async fn test_precedence_fixture_with_gpt5_profile() -> std::io::Result<()> {
         hide_agent_reasoning: false,
         show_raw_agent_reasoning: false,
         model_reasoning_effort: Some(ReasoningEffort::High),
+        plan_mode_model: None,
         plan_mode_reasoning_effort: None,
         model_reasoning_summary: Some(ReasoningSummary::Detailed),
         model_supports_reasoning_summaries: None,
