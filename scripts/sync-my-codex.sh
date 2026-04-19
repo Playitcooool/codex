@@ -78,6 +78,15 @@ if [[ ! -f "$patch_manifest" ]]; then
   exit 1
 fi
 
+patch_branches=()
+while IFS= read -r patch_branch || [[ -n "$patch_branch" ]]; do
+  patch_branch="${patch_branch%%#*}"
+  patch_branch="${patch_branch#"${patch_branch%%[![:space:]]*}"}"
+  patch_branch="${patch_branch%"${patch_branch##*[![:space:]]}"}"
+  [[ -z "$patch_branch" ]] && continue
+  patch_branches+=("$patch_branch")
+done < "$patch_manifest"
+
 if [[ -n "$(git status --short)" ]]; then
   echo "Working tree must be clean before syncing my-codex." >&2
   exit 1
@@ -105,12 +114,7 @@ run git reset --hard "$upstream_ref"
 
 run git checkout -B "$target_branch" "$upstream_ref"
 
-while IFS= read -r patch_branch || [[ -n "$patch_branch" ]]; do
-  patch_branch="${patch_branch%%#*}"
-  patch_branch="${patch_branch#"${patch_branch%%[![:space:]]*}"}"
-  patch_branch="${patch_branch%"${patch_branch##*[![:space:]]}"}"
-  [[ -z "$patch_branch" ]] && continue
-
+for patch_branch in "${patch_branches[@]}"; do
   current_patch_branch="$patch_branch"
 
   if ! git rev-parse --verify "$patch_branch" >/dev/null 2>&1; then
@@ -123,7 +127,7 @@ while IFS= read -r patch_branch || [[ -n "$patch_branch" ]]; do
     [[ -z "$commit" ]] && continue
     run git cherry-pick "$commit"
   done < <(git rev-list --reverse "${merge_base}..${patch_branch}")
-done < "$patch_manifest"
+done
 
 if $push_changes; then
   run git push --force-with-lease origin "$mirror_branch"
