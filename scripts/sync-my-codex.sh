@@ -93,7 +93,7 @@ if ! git remote get-url upstream >/dev/null 2>&1; then
   exit 1
 fi
 
-run git fetch origin upstream
+run git fetch --multiple origin upstream
 
 if ! git rev-parse --verify "$upstream_ref" >/dev/null 2>&1; then
   echo "Expected ref $upstream_ref after fetch." >&2
