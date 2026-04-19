@@ -34,6 +34,30 @@ The script:
 - replays the branches in `scripts/private-patch-branches.txt`
 - force-pushes `origin/main` and `origin/my-codex`
 
+## Recommended day-to-day workflow
+
+Do not develop directly on `my-codex`. Treat it as a generated integration
+branch.
+
+For a new private customization, start from clean `main` unless the new work
+explicitly depends on another patch branch:
+
+```bash
+git checkout main
+git pull --ff-only origin main
+git checkout -b patch-your-feature
+```
+
+Implement and commit the change on the new `patch-*` branch, add that branch to
+`scripts/private-patch-branches.txt`, then rebuild `my-codex`:
+
+```bash
+./scripts/sync-my-codex.sh
+```
+
+Only branch from an existing patch branch when the new customization genuinely
+depends on the older private change.
+
 ## Optional modes
 
 ```bash
