@@ -1,0 +1,3 @@
+# Ordered list of private customization branches to replay onto my-codex.
+# Add one branch name per line. Earlier branches are replayed first.
+plan-mode-model-override
